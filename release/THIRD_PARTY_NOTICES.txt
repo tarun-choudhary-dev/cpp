@@ -1,0 +1,20 @@
+Browser C++ compiler engine — third-party inventory for 0.1.0-rc.1
+
+Pinned distribution: binji/wasm-clang commit
+648c4a89997a351eef75cdaec3ef5b89d4937dec.
+The original files clang, lld, memfs, sysroot.tar, shared.js, LICENSE and
+LICENSE.llvm are byte-for-byte verified against research/assets.json during
+the source build. shared-patched.js is generated deterministically from
+shared.js solely to pass the file descriptor to the output callback.
+
+The upstream LICENSE file contains Apache License 2.0 text. LICENSE.llvm
+identifies the LLVM Project as Apache License 2.0 with LLVM exceptions.
+Both original notice files are included in poc/vendor/wasm-clang/.
+
+The sysroot archive contains C/C++ headers and libraries but no top-level
+license or notice files. Its exact component revisions and complete set of
+required third-party notices have not yet been verified. The upstream build
+notes mention wasi-sdk 5.0 but are insufficient to establish the precise
+contents of this pinned tar. This candidate must not be described as having
+completed third-party redistribution clearance. No separate Wasmer SDK or
+Wasmer compiler asset is included in this release directory.

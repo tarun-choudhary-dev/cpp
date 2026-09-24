@@ -1,0 +1,13 @@
+{
+  "version": "0.1.0-rc.1",
+  "phases": [
+    { "phase": "Phase 1 — browser proof", "changes": ["Pinned Clang/LLD/WASI browser proof and documented tested capabilities and limits."] },
+    { "phase": "Phase 2 — Worker runtime", "changes": ["Moved compilation, linking and execution into a dedicated Worker with a fresh filesystem per job."] },
+    { "phase": "Phase 3 — public API", "changes": ["Added CppCompiler lifecycle, compile/run, cancellation, reset and disposal."] },
+    { "phase": "Phase 4 — project model", "changes": ["Added canonical virtual paths, detached snapshots and deterministic multi-file compilation."] },
+    { "phase": "Phase 5 — result contract", "changes": ["Verified compile/run results, streams, stdin, exit codes and transferred Wasm artifact ownership."] },
+    { "phase": "Phase 6 — diagnostics and options", "changes": ["Added structured Clang diagnostics and a limited, validated C++ standard/optimization/warning option set."] },
+    { "phase": "Phase 7 — robustness", "changes": ["Added Worker watchdogs, resource/capture bounds, stale-generation protection and malformed-response handling."] },
+    { "phase": "Phase 8 — release candidate", "changes": ["Added a static package build, asset integrity verification, packaged-output browser smoke tests and consumer documentation."] }
+  ]
+}

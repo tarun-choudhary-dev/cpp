@@ -1,5 +1,5 @@
 {
-  "name": "browser-cpp-phase1",
+  "name": "browser-cpp-engine",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,10 +11,16 @@
     "test:compile-run": "node scripts/compile-run-test.mjs",
     "test:diagnostics-options": "node scripts/diagnostics-options-test.mjs",
     "test:robustness": "node scripts/robustness-test.mjs",
-    "check:privacy": "node scripts/check-privacy.mjs"
+    "check:privacy": "node scripts/check-privacy.mjs",
+    "verify:assets": "node scripts/verify-assets.mjs",
+    "build": "node scripts/build-release.mjs",
+    "test:release": "node scripts/release-test.mjs",
+    "verify:release": "node scripts/verify-release.mjs"
   },
   "devDependencies": {
     "@wasmer/sdk": "0.16.0",
     "playwright": "1.63.0"
-  }
+  },
+  "version": "0.1.0-rc.1",
+  "license": "SEE LICENSE IN LICENSE"
 }

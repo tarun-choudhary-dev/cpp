@@ -1,0 +1,32 @@
+name: Release candidate checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  browser-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox
+      - run: npm run assets
+      - run: npm run verify:assets
+      - run: npm run build
+      - run: npm run verify:release
+      - run: npm run check:privacy
+      - run: npm test
+      - run: npm run test:worker
+      - run: npm run test:api
+      - run: npm run test:project
+      - run: npm run test:compile-run
+      - run: npm run test:diagnostics-options
+      - run: npm run test:robustness
+      - run: npm run test:release

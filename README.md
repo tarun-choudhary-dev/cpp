@@ -1,10 +1,10 @@
-# Browser C++ compiler engine
+# Browser C++ compiler engine — 0.1.0-rc.1
 
 Real C++ compilation and execution have been verified in browser Web Workers with **no compiler backend**. The supplied `iostream` Hello World passes in Chromium and Firefox with all networking disabled before source submission.
 
 The [pinned asset manifest](research/assets.json) records the toolchain inputs and hashes. The full research report and raw browser results are local-only files.
 
-Phase 2 added a reusable **Worker runtime** around the unchanged Phase 1 toolchain. Phase 3 added the public [CppCompiler](src/index.js) JavaScript API over that Worker. Phase 4 formalized its internal project and in-memory file model. Phase 5 verified the compile/run contract. Phase 6 added structured compiler diagnostics and a small, validated options interface. Phase 7 added host-side timeouts, bounded inputs/output and stronger Worker-result checks. It has no editor, UI, framework components or backend. `poc/blank.html` remains an empty automation fixture. Detailed API and architecture notes are local-only under `docs/`.
+Phase 2 added a reusable **Worker runtime** around the unchanged Phase 1 toolchain. Phase 3 added the public [CppCompiler](src/index.js) JavaScript API over that Worker. Phase 4 formalized its internal project and in-memory file model. Phase 5 verified the compile/run contract. Phase 6 added structured compiler diagnostics and a small, validated options interface. Phase 7 added host-side timeouts, bounded inputs/output and stronger Worker-result checks. Phase 8 packages these unchanged modules as a static release candidate. It has no editor, UI, framework components or backend. `poc/blank.html` remains an empty automation fixture. Local engineering notes remain ignored under `docs/`; the shareable consumer [API guide](guide/api/README.md), [security and limits](guide/security/README.md), [toolchain inventory](guide/toolchain/README.md) and [test matrix](guide/testing/README.md) are README-named files under `guide/`.
 
 ```js
 import { CppCompiler } from './src/index.js';
@@ -36,6 +36,11 @@ npm run test:project
 npm run test:compile-run
 npm run test:diagnostics-options
 npm run test:robustness
+npm run verify:assets
+npm run build
+npm run verify:release
+npm run test:release
+npm run check:privacy
 ```
 
 Setup downloads packages, browser binaries and approximately 60.4 MB of compiler assets. `npm run assets` verifies each upstream file against a pinned SHA-256 and retains license files. Subsequent runs reuse verified local assets. Large downloaded assets are excluded from Git.
@@ -55,6 +60,12 @@ It writes `evidence/chromium.json` and `evidence/firefox.json`: exact commands, 
 `npm run test:diagnostics-options` checks diagnostic parsing, source/header/link locations, warning-only builds, the actual selected Clang flags, option behavior and API/Worker rejection of invalid options in Chromium and Firefox. Raw reports stay local under `evidence/phase6-*.json`.
 
 `npm run test:robustness` checks Phase 7 limits, cancellation and timeout races, malformed Worker responses, stale-message handling, resource cleanup and recovery in Chromium and Firefox. Normal initialized jobs run offline; replacement Workers reload same-origin assets. Raw reports stay local under `evidence/phase7-*.json`.
+
+`npm run verify:assets` checks the already-downloaded pinned files without fetching or repairing them, including the deterministic host patch. `npm run build` creates one ignored `dist/` directory with an allowlisted package, `release-manifest.json`, notices, and a minimal consumer example. `npm run verify:release` checks the exact package file list, hashes, paths and entry. `npm run test:release` serves **only the built package** over loopback HTTP at `/` and `/cpp-engine/`, then tests its public API, options, diagnostics, cancellation, real infinite-loop timeout/recovery, reset, disposal and example in Chromium and Firefox. Timings are recorded in ignored `evidence/phase8-release.json`.
+
+The release package entry is `dist/src/index.js` (package export `browser-cpp-engine`). Deploy the complete directory with its relative Worker and asset paths intact; `file://` is unsupported. The package is marked private and has not been published. See [its README](release/README.md) for intended deployment behavior and [the build script](scripts/build-release.mjs) for the exact allowlist. The pinned Clang and engine versions are separate.
+
+The engine license is being finalized as AGPL 3.0; upstream Clang/LLD notices are separate. The pinned sysroot archive has no bundled notice inventory, so third-party redistribution review is **incomplete**. The package preserves the two upstream notice files and calls out this gap; it must not be described as fully cleared for publication yet.
 
 To limit the test to one installed browser in PowerShell:
 
@@ -77,7 +88,8 @@ Review `git status --short --untracked-files=all` and `git diff --cached` before
 - `poc/worker.js`, `poc/cases.mjs`: private experiment and C++ fixtures.
 - `worker/compiler-worker.js`, `worker/runtime.js`, `worker/protocol.js`: dedicated runtime, toolchain adapter, input validation and diagnostics.
 - `src/index.js`, `src/project.js`, `src/virtual-fs.js`, `src/worker-client.js`: public API, internal project/VFS model and private Worker transport.
-- `docs/`: local-only Phase 2–7 architecture, protocol, API, project, compile/run, diagnostics/options, robustness and lifecycle notes.
+- `docs/`: local-only Phase 2–8 architecture, protocol, API, project, compile/run, diagnostics/options, robustness and lifecycle notes.
+- `guide/`: shareable consumer documentation; `release/`: shareable release input; `dist/`: ignored generated package.
 - `scripts/`: asset verification, static test transport and browser automation.
 - `research/`: local-only comparison plus shareable asset URLs/hashes and upstream observations.
 - `evidence/`: local-only measured results, including the unavailable WebKit environment.
