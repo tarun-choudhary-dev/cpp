@@ -2,6 +2,8 @@ import { CompilerError } from './compiler-error.js';
 import { ProjectSnapshot } from './project.js';
 import { WorkerClient } from './worker-client.js';
 
+const watchdogMs = Object.freeze({ initialize: 45_000, build: 60_000, execute: 15_000 });
+
 function publicResult(result) {
   // Keep the proven values and transferable artifact; omit internal command args.
   return {
@@ -10,10 +12,15 @@ function publicResult(result) {
     exitCode: result.exitCode,
     stdout: result.stdout,
     stderr: result.stderr,
+    stdoutTruncated: result.stdoutTruncated ?? false,
+    stderrTruncated: result.stderrTruncated ?? false,
+    outputTruncated: result.outputTruncated ?? false,
+    diagnosticsTruncated: result.diagnosticsTruncated ?? false,
     trap: result.trap && { ...result.trap },
     diagnostics: result.diagnostics.map(d => ({ ...d })),
-    steps: result.steps.map(({ stage, stdout, stderr, exitCode, trap, ms }) => ({
-      stage, stdout, stderr, exitCode, trap: trap && { ...trap }, ms
+    steps: result.steps.map(({ stage, stdout, stderr, stdoutTruncated, stderrTruncated, exitCode, trap, ms }) => ({
+      stage, stdout, stderr, stdoutTruncated: stdoutTruncated ?? false,
+      stderrTruncated: stderrTruncated ?? false, exitCode, trap: trap && { ...trap }, ms
     })),
     artifact: result.artifact && { ...result.artifact },
     durationMs: result.durationMs
@@ -71,7 +78,8 @@ export class CppCompiler {
     const task = (async () => {
       try {
         if (!this.#client) this.#client = new WorkerClient(this.#workerUrl, () => this.#workerStopped(generation));
-        const metadata = await this.#client.request('init', this.#assetBase === undefined ? {} : { assetBase: this.#assetBase });
+        const metadata = await this.#client.request('init', this.#assetBase === undefined ? {} : { assetBase: this.#assetBase },
+          { timeoutMs: watchdogMs.initialize });
         if (generation !== this.#generation || this.#state === 'disposed') {
           throw new CompilerError('CANCELLATION', 'Initialization was interrupted.');
         }
@@ -88,10 +96,11 @@ export class CppCompiler {
             this.#state = 'fatal';
           } else if (this.#state !== 'fatal') {
             // Phase 2 permits retrying initialization after a missing asset.
+            if (error?.code === 'TIMEOUT') this.#client = null; // Watchdog already terminated it.
             this.#state = 'created';
           }
         }
-        if (error instanceof CompilerError && ['WORKER_ERROR', 'CANCELLATION', 'COMPILER_DISPOSED'].includes(error.code)) throw error;
+        if (error instanceof CompilerError && ['WORKER_ERROR', 'TIMEOUT', 'CANCELLATION', 'COMPILER_DISPOSED'].includes(error.code)) throw error;
         throw new CompilerError(failureCode, error.message || 'Compiler initialization failed.', error);
       }
     })();
@@ -125,8 +134,13 @@ export class CppCompiler {
     const generation = this.#generation;
     this.#state = 'busy';
     try {
-      return publicResult(await this.#client.request(type, input));
+      return publicResult(await this.#client.request(type, input,
+        { timeoutMs: watchdogMs.build, executionTimeoutMs: type === 'compileAndRun' ? watchdogMs.execute : undefined }));
     } catch (error) {
+      if (error?.code === 'TIMEOUT' && generation === this.#generation && this.#state !== 'disposed') {
+        // Reject this job now; recovery happens on a replacement Worker.
+        this.#restart(error).catch(() => {});
+      }
       if (error?.code === 'INVALID_REQUEST') throw new CompilerError('INVALID_PROJECT', error.message, error);
       if (error?.code === 'NOT_INITIALIZED') throw new CompilerError('COMPILER_NOT_READY', error.message, error);
       if (error?.code === 'DISPOSED') throw new CompilerError('COMPILER_DISPOSED', error.message, error);
@@ -159,7 +173,7 @@ export class CppCompiler {
   cancel() {
     this.#assertAlive();
     if (this.#restartPromise) return this.#restartPromise;
-    if (this.#state !== 'busy') return Promise.resolve(this.getCompilerInfo());
+    if (this.#state !== 'busy' && this.#state !== 'initializing') return Promise.resolve(this.getCompilerInfo());
     return this.#restart(new CompilerError('CANCELLATION', 'Compiler operation was cancelled.'));
   }
 

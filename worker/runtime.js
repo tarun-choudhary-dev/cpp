@@ -27,8 +27,8 @@ class CompilerWorkerRuntime {
     this.assets = new Map(entries);
     try {
       const api = await this.createFilesystem();
-      const clang = await this.command(api, 'initialize', this.assets.get('clang'), 'clang', '--version');
-      const lld = await this.command(api, 'initialize', this.assets.get('lld'), 'wasm-ld', '--version');
+      const clang = await this.command(api, 'initialize', this.assets.get('clang'), ['clang', '--version']);
+      const lld = await this.command(api, 'initialize', this.assets.get('lld'), ['wasm-ld', '--version']);
       if (clang.exitCode !== 0 || lld.exitCode !== 0) throw new Error('Compiler/linker version check failed.');
       this.info = {
         assetBase: base.href, clang: clang.stdout.trim(), lld: lld.stdout.trim(),
@@ -59,12 +59,22 @@ class CompilerWorkerRuntime {
     return api;
   }
 
-  async command(api, stage, module, ...args) {
+  async command(api, stage, module, args, outputBudget = { remaining: WorkerLimits.outputChars }) {
     const started = performance.now();
-    const step = { stage, args, stdout: '', stderr: '', exitCode: 0, trap: null };
+    const step = { stage, args, stdout: '', stderr: '', stdoutTruncated: false, stderrTruncated: false,
+      exitCode: 0, trap: null };
     api.memfs.hostWrite = (text, fd) => {
-      if (fd === 1) step.stdout += text;
-      if (fd === 2) step.stderr += text;
+      const stream = fd === 1 ? 'stdout' : fd === 2 ? 'stderr' : null;
+      if (!stream || !text) return;
+      const available = Math.min(outputBudget.remaining, WorkerLimits.outputChars - step[stream].length);
+      let chunk = text.slice(0, Math.max(0, available));
+      // Never introduce an unpaired UTF-16 surrogate at a capture boundary.
+      const splitSurrogate = chunk.length < text.length && /[\uD800-\uDBFF]$/.test(chunk);
+      if (splitSurrogate) chunk = chunk.slice(0, -1);
+      step[stream] += chunk;
+      outputBudget.remaining -= chunk.length;
+      if (splitSurrogate) outputBudget.remaining = 0;
+      if (chunk.length < text.length) step[`${stream}Truncated`] = true;
     };
     try {
       const app = await api.run(module, ...args);
@@ -83,9 +93,10 @@ class CompilerWorkerRuntime {
     if (!this.info) throw new WorkerProtocol.RequestError('NOT_INITIALIZED', 'Send init and wait for success before compiling.');
     const start = performance.now();
     const api = await this.createFilesystem();
+    const outputBudget = { remaining: WorkerLimits.outputChars };
     const run = (stage, module, ...args) => {
       onStage(stage);
-      return this.command(api, stage, module, ...args);
+      return this.command(api, stage, module, args, outputBudget);
     };
     // API/MemFS/App state is owned only by this job and becomes collectible on return.
     // Project include/ is aliased away from the sysroot include/ directory.
@@ -102,17 +113,23 @@ class CompilerWorkerRuntime {
     let artifact = null;
     const finish = () => {
       const last = steps.at(-1);
-      const diagnostics = steps.filter(s => s.stage !== 'execute')
-        .flatMap(s => WorkerProtocol.diagnostics(s.stage, s.stderr))
-        .map(d => {
+      const diagnostics = [];
+      let diagnosticsTruncated = steps.some(s => s.stage !== 'execute' && s.stderrTruncated);
+      for (const step of steps.filter(s => s.stage !== 'execute')) {
+        const parsed = WorkerProtocol.diagnostics(step.stage, step.stderr, WorkerLimits.diagnostics - diagnostics.length);
+        diagnosticsTruncated ||= parsed.truncated;
+        for (const d of parsed) {
           const logical = d.file?.startsWith('.cpp-project/include/')
             ? d.file.slice('.cpp-project/'.length) : null;
-          return { ...d, file: job.isolatedIncludes && logical && Object.hasOwn(job.files, logical)
-            ? logical : d.file };
-        });
+          diagnostics.push({ ...d, file: job.isolatedIncludes && logical && Object.hasOwn(job.files, logical)
+            ? logical : d.file });
+        }
+      }
       return {
         status: last.trap ? 'trap' : last.exitCode !== 0 ? (last.stage === 'execute' ? 'nonzero-exit' : `${last.stage}-error`) : 'success',
         stage: last.stage, exitCode: last.exitCode, stdout: last.stdout, stderr: last.stderr,
+        stdoutTruncated: last.stdoutTruncated, stderrTruncated: last.stderrTruncated,
+        outputTruncated: steps.some(s => s.stdoutTruncated || s.stderrTruncated), diagnosticsTruncated,
         trap: last.trap, steps, diagnostics,
         artifact, durationMs: performance.now() - start
       };
@@ -137,7 +154,8 @@ class CompilerWorkerRuntime {
       '-lc', '-lc++', '-lc++abi', '-o', output);
     steps.push(link);
     if (link.exitCode !== 0) return finish();
-    const bytes = api.memfs.getFileContents(output).slice();
+    const linked = WorkerProtocol.artifact(api.memfs.getFileContents(output));
+    const bytes = linked.slice();
     artifact = { format: 'wasm', abi: 'wasi_unstable', bytes };
     if (execute) {
       try {

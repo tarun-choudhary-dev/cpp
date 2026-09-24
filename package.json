@@ -10,6 +10,7 @@
     "test:project": "node scripts/project-test.mjs",
     "test:compile-run": "node scripts/compile-run-test.mjs",
     "test:diagnostics-options": "node scripts/diagnostics-options-test.mjs",
+    "test:robustness": "node scripts/robustness-test.mjs",
     "check:privacy": "node scripts/check-privacy.mjs"
   },
   "devDependencies": {

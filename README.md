@@ -4,7 +4,7 @@ Real C++ compilation and execution have been verified in browser Web Workers wit
 
 The [pinned asset manifest](research/assets.json) records the toolchain inputs and hashes. The full research report and raw browser results are local-only files.
 
-Phase 2 added a reusable **Worker runtime** around the unchanged Phase 1 toolchain. Phase 3 added the public [CppCompiler](src/index.js) JavaScript API over that Worker. Phase 4 formalized its internal project and in-memory file model. Phase 5 verified the compile/run contract. Phase 6 added structured compiler diagnostics and a small, validated options interface. It has no editor, UI, framework components or backend. `poc/blank.html` remains an empty automation fixture. Detailed API and architecture notes are local-only under `docs/`.
+Phase 2 added a reusable **Worker runtime** around the unchanged Phase 1 toolchain. Phase 3 added the public [CppCompiler](src/index.js) JavaScript API over that Worker. Phase 4 formalized its internal project and in-memory file model. Phase 5 verified the compile/run contract. Phase 6 added structured compiler diagnostics and a small, validated options interface. Phase 7 added host-side timeouts, bounded inputs/output and stronger Worker-result checks. It has no editor, UI, framework components or backend. `poc/blank.html` remains an empty automation fixture. Detailed API and architecture notes are local-only under `docs/`.
 
 ```js
 import { CppCompiler } from './src/index.js';
@@ -19,7 +19,7 @@ console.log(result.status, result.stdout, result.exitCode);
 await compiler.dispose();
 ```
 
-`compile(project)` builds without executing user code; `run(project)` builds again and executes. A project supplies text `files`, an existing `entry` path, optional preloaded `stdin`, and optional `options`. Supported options are `standard: 'c++11' | 'c++14' | 'c++17'`, `optimization: 'O0' | 'O1' | 'O2'`, and `warnings: { all?: boolean, extra?: boolean }`. Omitted options preserve the original C++17/O0 command; arbitrary flags reject. Paths are relative to an in-memory virtual project root, use `/`, and never access the user's actual filesystem. Harmless `.` segments normalize; traversal, absolute/drive paths, backslashes and duplicate normalized paths reject. The entry compiles first, then other `.cpp`, `.cc`, `.cxx` and `.C` files in canonical path order. Headers, including nested `include/` headers, stay available for Clang includes. Both methods resolve with structured statuses (`success`, `compile-error`, `link-error`, `nonzero-exit`, `trap`), ordered compile/link diagnostics, per-stage raw output and a caller-owned `Uint8Array` Wasm artifact when linking succeeds. Syntax/link failures and nonzero exits are results; API/Worker failures reject with an error `code`. `cancel()` and `reset()` replace the Worker and reload assets; `dispose()` permanently releases it. Previously returned artifacts remain valid after these lifecycle changes. The legacy stdin path does not round-trip all Unicode text, and there is no interactive input or runtime output quota.
+`compile(project)` builds without executing user code; `run(project)` builds again and executes. A project supplies text `files`, an existing `entry` path, optional preloaded `stdin`, and optional `options`. Supported options are `standard: 'c++11' | 'c++14' | 'c++17'`, `optimization: 'O0' | 'O1' | 'O2'`, and `warnings: { all?: boolean, extra?: boolean }`. Omitted options preserve the original C++17/O0 command; arbitrary flags reject. Paths are relative to an in-memory virtual project root, use `/`, and never access the user's actual filesystem. Harmless `.` segments normalize; traversal, absolute/drive paths, backslashes and duplicate normalized paths reject. The entry compiles first, then other `.cpp`, `.cc`, `.cxx` and `.C` files in canonical path order. Headers, including nested `include/` headers, stay available for Clang includes. Both methods resolve with structured statuses (`success`, `compile-error`, `link-error`, `nonzero-exit`, `trap`), ordered compile/link diagnostics, per-stage captured output and a caller-owned `Uint8Array` Wasm artifact when linking succeeds. Syntax/link failures and nonzero exits are results; API/Worker failures reject with an error `code`. `cancel()` and `reset()` replace the Worker and reload assets; `dispose()` permanently releases it. Timed-out builds reject with `TIMEOUT` and trigger Worker replacement. Previously returned artifacts remain valid after lifecycle changes. Inputs and output capture are bounded, with truncation flags on results; browser Worker memory itself has no portable hard quota. The legacy stdin path does not round-trip all Unicode text, and there is no interactive input.
 
 ## Reproduce
 
@@ -35,6 +35,7 @@ npm run test:api
 npm run test:project
 npm run test:compile-run
 npm run test:diagnostics-options
+npm run test:robustness
 ```
 
 Setup downloads packages, browser binaries and approximately 60.4 MB of compiler assets. `npm run assets` verifies each upstream file against a pinned SHA-256 and retains license files. Subsequent runs reuse verified local assets. Large downloaded assets are excluded from Git.
@@ -52,6 +53,8 @@ It writes `evidence/chromium.json` and `evidence/firefox.json`: exact commands, 
 `npm run test:compile-run` checks the Phase 5 compile/run contract, streams, input, exit codes, failures, repeatability, artifact ownership and lifecycle in Chromium and Firefox. Initialized jobs run offline. Results, including a wider-Unicode stdin observation, stay local under `evidence/phase5-*.json`.
 
 `npm run test:diagnostics-options` checks diagnostic parsing, source/header/link locations, warning-only builds, the actual selected Clang flags, option behavior and API/Worker rejection of invalid options in Chromium and Firefox. Raw reports stay local under `evidence/phase6-*.json`.
+
+`npm run test:robustness` checks Phase 7 limits, cancellation and timeout races, malformed Worker responses, stale-message handling, resource cleanup and recovery in Chromium and Firefox. Normal initialized jobs run offline; replacement Workers reload same-origin assets. Raw reports stay local under `evidence/phase7-*.json`.
 
 To limit the test to one installed browser in PowerShell:
 
@@ -74,7 +77,7 @@ Review `git status --short --untracked-files=all` and `git diff --cached` before
 - `poc/worker.js`, `poc/cases.mjs`: private experiment and C++ fixtures.
 - `worker/compiler-worker.js`, `worker/runtime.js`, `worker/protocol.js`: dedicated runtime, toolchain adapter, input validation and diagnostics.
 - `src/index.js`, `src/project.js`, `src/virtual-fs.js`, `src/worker-client.js`: public API, internal project/VFS model and private Worker transport.
-- `docs/`: local-only Phase 2–6 architecture, protocol, API, project, compile/run, diagnostics/options and lifecycle notes.
+- `docs/`: local-only Phase 2–7 architecture, protocol, API, project, compile/run, diagnostics/options, robustness and lifecycle notes.
 - `scripts/`: asset verification, static test transport and browser automation.
 - `research/`: local-only comparison plus shareable asset URLs/hashes and upstream observations.
 - `evidence/`: local-only measured results, including the unavailable WebKit environment.

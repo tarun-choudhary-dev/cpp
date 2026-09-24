@@ -1,6 +1,7 @@
 import { CompilerError } from './compiler-error.js';
 import { normalizeCompilerOptions } from './compiler-options.js';
 import { normalizeProjectPath, VirtualFileSystem } from './virtual-fs.js';
+import { ResourceLimits } from './resource-limits.js';
 
 const sourceExtension = /\.(?:cpp|cc|cxx|C)$/;
 const invalid = message => { throw new CompilerError('INVALID_PROJECT', message); };
@@ -26,6 +27,9 @@ export class ProjectSnapshot {
     if (!this.#filesystem.has(this.#entry)) invalid('Project entry must name a file in files.');
     this.#stdin = project.stdin ?? '';
     if (typeof this.#stdin !== 'string') invalid('Project stdin must be a string.');
+    if (this.#stdin.length > ResourceLimits.stdinChars) {
+      throw new CompilerError('RESOURCE_LIMIT', `Project stdin exceeds ${ResourceLimits.stdinChars} characters.`);
+    }
     const paths = this.#filesystem.list();
     this.#sources = Object.freeze([
       this.#entry,
