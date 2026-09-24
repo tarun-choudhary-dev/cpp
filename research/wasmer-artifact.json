@@ -1,0 +1,12 @@
+{
+  "observedAt": "2026-09-24T02:29:06.142Z",
+  "package": "clang/clang@0.160000.1",
+  "url": "https://cdn.wasmer.io/webcimages/c127b7bfc0041d02c94045f40be7fb4b3eeb98cede25fad96261b7b90a82f405.webc",
+  "measurement": "HTTP HEAD Content-Length, not captured transfer bytes",
+  "bytes": 110713421,
+  "lastModified": "Thu, 08 Jan 2026 20:12:41 GMT",
+  "sdk": {
+    "version": "0.16.0",
+    "wasmBytes": 4775571
+  }
+}

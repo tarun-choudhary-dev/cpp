@@ -1,0 +1,15 @@
+{
+  "name": "browser-cpp-phase1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/fetch-assets.mjs",
+    "test": "node scripts/browser-test.mjs",
+    "test:worker": "node scripts/worker-test.mjs",
+    "check:privacy": "node scripts/check-privacy.mjs"
+  },
+  "devDependencies": {
+    "@wasmer/sdk": "0.16.0",
+    "playwright": "1.63.0"
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "observedAt": "2026-09-24T02:27:20.128Z",
+  "package": "emception@4.4.0",
+  "published": "2026-08-23T01:55:12.637Z",
+  "manifestUrl": "https://cdn.jsdelivr.net/npm/emception@4.4.0/cdn/manifest.json",
+  "manifestSha256": "829d9da36d5b7d1393cde7d289b6e8e2d88202b551533f00ca9c29fcb6a6f391",
+  "generated": "2026-08-15T01:54:35Z",
+  "compiler": {
+    "size": 116424924,
+    "hash": "cd470a25dce4b8d619253db76f6f35bd6062b71132dd50000b1414585d2a0404",
+    "executable": true,
+    "priority": "normal",
+    "bundle": "clang"
+  },
+  "linker": {
+    "size": 57941898,
+    "hash": "9c3fba35716d35c3c2bb8e7dcd96b7dc145535cbd2ae8d18454c649a66c92152",
+    "executable": true,
+    "priority": "normal",
+    "bundle": "lld"
+  },
+  "bundles": {
+    "clang": {
+      "url": "/cdn/usr/lib/clang.tar.br",
+      "bytes": 22722627,
+      "sha256": "75598c810569371cd47282ba655e4e6026cb0c5708c7de1a8dad6cad8169eae4"
+    },
+    "cmake": {
+      "url": "/cdn/usr/lib/cmake.tar.br",
+      "bytes": 2022027,
+      "sha256": "e53aeaed3ce7636e624e95a95ae9385e20bcecf60506f4c91bbc2bbccce66305"
+    },
+    "lld": {
+      "url": "/cdn/usr/lib/lld.tar.br",
+      "bytes": 12292268,
+      "sha256": "c9cab28e455e4e863307e995144b7ab9de20cf12761bd7f274cee5f78c408ed4"
+    },
+    "python": {
+      "url": "/cdn/usr/lib/python.tar.br",
+      "bytes": 2752338,
+      "sha256": "cf3b700ab8aabd9bb2c7a373b25052397ab629577ff8c815a094343896b12630"
+    },
+    "wasm-as": {
+      "url": "/cdn/usr/lib/wasm-as.tar.br",
+      "bytes": 1415834,
+      "sha256": "64e94dfc08fc5807d59c3abb6c77c7bfe889c6e6b70a2f2e5385a7a78bee72f5"
+    },
+    "wasm-ctor-eval": {
+      "url": "/cdn/usr/lib/wasm-ctor-eval.tar.br",
+      "bytes": 1503569,
+      "sha256": "3cd83282adcffd3a782bf22c294c315727ac51f390490e620f383150f54dc891"
+    },
+    "wasm-emscripten-finalize": {
+      "url": "/cdn/usr/lib/wasm-emscripten-finalize.tar.br",
+      "bytes": 1418584,
+      "sha256": "ef6755a8487d7c0b62a886b7742c4096fad0504e7b10b9e30aaab42243b1cc74"
+    },
+    "wasm-metadce": {
+      "url": "/cdn/usr/lib/wasm-metadce.tar.br",
+      "bytes": 1437698,
+      "sha256": "390918106d120536f3fe4e79bd9ddf72491150f1c6ba2622dc9c67fb840ff317"
+    },
+    "wasm-opt": {
+      "url": "/cdn/usr/lib/wasm-opt.tar.br",
+      "bytes": 1603972,
+      "sha256": "121e89786de98d38d12f19457f8980df338c1a894824ad083023c32fc1df3f81"
+    },
+    "sdl3": {
+      "url": "/cdn/usr/lib/sdl3.tar.br",
+      "bytes": 2520180,
+      "sha256": "8aa59a57366099a6b926ccb69f1dd65f2d4820e75228485162369aa70c135ddf"
+    },
+    "cache-crt": {
+      "url": "/cdn/usr/lib/cache-crt.tar.br",
+      "bytes": 5419,
+      "sha256": "9af6ab8b76e82b513643ce5e31619e1cd31f88b4613eb5f6a3248269291c49eb"
+    },
+    "cache-core": {
+      "url": "/cdn/usr/lib/cache-core.tar.br",
+      "bytes": 2793255,
+      "sha256": "3842ed965b13c9120e2179b4cb1f52b9bc3af052bee45aade50e6268755f9a45"
+    },
+    "cache-libcxx-variants": {
+      "url": "/cdn/usr/lib/cache-libcxx-variants.tar.br",
+      "bytes": 4812087,
+      "sha256": "454f9803d422965992ba3dd447db64010c3d3819246b1055af729895aa74e851"
+    },
+    "cache-libc-variants": {
+      "url": "/cdn/usr/lib/cache-libc-variants.tar.br",
+      "bytes": 2564945,
+      "sha256": "d9202cb2730af0879c60104166267422796cf89f0ac3c7433f7a3ca14de96441"
+    },
+    "cache-gl-variants": {
+      "url": "/cdn/usr/lib/cache-gl-variants.tar.br",
+      "bytes": 95588,
+      "sha256": "6ca2a881b0c65529cf063f0f48ce99047b23e85596894a53ed69481d63f05211"
+    },
+    "cache-wasmfs": {
+      "url": "/cdn/usr/lib/cache-wasmfs.tar.br",
+      "bytes": 8942833,
+      "sha256": "36866fa1c154286b596a5704d5f5efe4516438d86dab1645f41fc2e125fd6b73"
+    },
+    "cache-sanitizers": {
+      "url": "/cdn/usr/lib/cache-sanitizers.tar.br",
+      "bytes": 1804806,
+      "sha256": "df7129e1fd7f533a01b01def55a6e4c9a5becd8cd8a59d3c6234ee99b540a39e"
+    },
+    "cache-debug": {
+      "url": "/cdn/usr/lib/cache-debug.tar.br",
+      "bytes": 8321285,
+      "sha256": "b8230c191ee521b0fe445af9e699f3bb65e4ebdb293bc3668493601bc3a2b6c4"
+    },
+    "cache-misc": {
+      "url": "/cdn/usr/lib/cache-misc.tar.br",
+      "bytes": 6306344,
+      "sha256": "68cd523a26097894e12adb5246b5f6fe02d2e993b468d5d954b9558b0cf180df"
+    },
+    "clang-headers": {
+      "url": "/cdn/usr/lib/clang-headers.tar.br",
+      "bytes": 441613,
+      "sha256": "341b1b01bb7a6e32cf614d082e91cdfa88eaadc957e24efce54c14068e385538"
+    },
+    "usr-include": {
+      "url": "/cdn/usr/include.tar.br",
+      "bytes": 2770725,
+      "sha256": "e21dcd406c74bc8328f38b79d37e88bb9b2250ed678eff7db94c7bc10958f850"
+    },
+    "emscripten-core": {
+      "url": "/cdn/usr/lib/emscripten-core.tar.br",
+      "bytes": 3918332,
+      "sha256": "7d995bab8119e7690a29e923774f62c468e082e0a326a601d69c08c4f27ea3f3"
+    },
+    "python-runtime": {
+      "url": "/cdn/usr/lib/python-runtime.tar.br",
+      "bytes": 14578449,
+      "sha256": "fe53cdea2c8548780f06a580392033e2085452833e622d0c6c70a05609a78fdb"
+    },
+    "usr-bin": {
+      "url": "/cdn/usr/bin.tar.br",
+      "bytes": 32059,
+      "sha256": "dd25bfd9cea9ab6f115604eb22565e140fa39a2363c9ab246048d8b7e68e2f06"
+    },
+    "libcurl": {
+      "url": "/cdn/usr/lib/libcurl.tar.br",
+      "bytes": 3814,
+      "sha256": "53781457c01ce08949ffcf625b5d81d4146bf2c75797116f27f471a8935869a1"
+    },
+    "imgui": {
+      "url": "/cdn/usr/lib/imgui.tar.br",
+      "bytes": 407889,
+      "sha256": "bf041f06fdb0dc59e9674bd88728f4307adc164f1510ac966201baca28cddee4"
+    },
+    "raylib": {
+      "url": "/cdn/usr/lib/raylib.tar.br",
+      "bytes": 469709,
+      "sha256": "cac4271a583ac7178b69b890c9f388605e07617606baff5b1890e07085915d4a"
+    },
+    "allegro": {
+      "url": "/cdn/usr/lib/allegro.tar.br",
+      "bytes": 260839,
+      "sha256": "68c77e205c9de4383a652a47a5d9b36e8ff1cfe435e1ba15f306b71e5c19f4fe"
+    },
+    "usr-share": {
+      "url": "/cdn/usr/share.tar.br",
+      "bytes": 836678,
+      "sha256": "a9a4a13149ff1001290634f537482f70b6866a6675caa9375bf9d70017a2188e"
+    }
+  },
+  "canonicalManifestCheck": {
+    "url": "https://cdn.jsdelivr.net/npm/@gameguild/emception-toolchain@4.4.0/cdn/manifest.json",
+    "status": 404
+  },
+  "browserPackage": {
+    "version": "4.4.0",
+    "unpackedBytes": 666211
+  },
+  "corePackage": {
+    "version": "4.4.0",
+    "unpackedBytes": 113271752
+  }
+}
