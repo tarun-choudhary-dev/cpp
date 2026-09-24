@@ -11,18 +11,21 @@ const WorkerProtocol = (() => {
     if (!['init', 'compile', 'compileAndRun', 'dispose'].includes(data.type)) invalid('Unknown request type.');
     return data;
   }
-  function path(name) {
+  function path(name, isolatedIncludes = false) {
     if (typeof name !== 'string' || name.length > 240 || !/^[A-Za-z0-9_][A-Za-z0-9_./-]*$/.test(name)) invalid('File paths must be relative ASCII paths (letters, digits, _, -, . and /).');
     const parts = name.split('/');
     if (parts.some(p => !p || p === '.' || p === '..')) invalid(`Noncanonical path: ${name}`);
-    if (['include', 'lib', 'tmp', 'dev'].includes(parts[0])) invalid(`Reserved sysroot path: ${name}`);
+    if (['lib', 'tmp', 'dev'].includes(parts[0]) ||
+        (parts[0] === 'include' && (!isolatedIncludes || parts.length === 1))) invalid(`Reserved sysroot path: ${name}`);
     return name;
   }
   function job(data) {
+    if (data.isolatedIncludes !== undefined && data.isolatedIncludes !== true) invalid('isolatedIncludes must be true when supplied.');
+    const isolatedIncludes = data.isolatedIncludes === true;
     if (!record(data.files) || !Object.keys(data.files).length) invalid('files must be a nonempty map of paths to source text.');
     const names = Object.keys(data.files);
     for (const name of names) {
-      path(name);
+      path(name, isolatedIncludes);
       if (typeof data.files[name] !== 'string') invalid(`File ${name} must contain text.`);
       const pieces = name.split('/');
       for (let i = 1; i < pieces.length; i++) {
@@ -31,7 +34,7 @@ const WorkerProtocol = (() => {
     }
     if (!Array.isArray(data.sources) || !data.sources.length) invalid('sources must be a nonempty ordered array.');
     for (const source of data.sources) {
-      path(source);
+      path(source, isolatedIncludes);
       if (!Object.hasOwn(data.files, source)) invalid(`Source is missing from files: ${source}`);
     }
     if (new Set(data.sources).size !== data.sources.length) invalid('Duplicate source paths.');
@@ -41,7 +44,7 @@ const WorkerProtocol = (() => {
     if (typeof stdin !== 'string') invalid('stdin must be a preloaded string.');
     const compilerFlags = data.compilerFlags ?? [];
     if (!Array.isArray(compilerFlags) || compilerFlags.some(f => !['-fcxx-exceptions', '-fexceptions'].includes(f))) invalid('Only the Phase 1 exception probe flags are accepted as compilerFlags.');
-    return { files: data.files, sources: data.sources, standard, stdin, compilerFlags };
+    return { files: data.files, sources: data.sources, standard, stdin, compilerFlags, isolatedIncludes };
   }
   function diagnostics(stage, stderr) {
     const found = [];

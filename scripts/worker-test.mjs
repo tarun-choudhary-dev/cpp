@@ -72,6 +72,9 @@ try {
       for (const [id, patch] of [
         ['traversal', { files: { '../oops.cpp': '' }, sources: ['../oops.cpp'] }],
         ['reserved', { files: { 'include/iostream': '' }, sources: ['include/iostream'] }],
+        ['isolated-include-required', { files: { 'main.cpp': '#include "include/math.hpp"\nint main(){}', 'include/math.hpp': '' }, sources: ['main.cpp'] }],
+        ['isolated-include-flag-type', { isolatedIncludes: false }],
+        ['reserved-output', { files: { '.cpp-worker/0.o': '' }, sources: ['.cpp-worker/0.o'] }],
         ['missing-source', { sources: ['absent.cpp'] }],
         ['directory-conflict', { files: { a: '', 'a/main.cpp': '' }, sources: ['a/main.cpp'] }],
         ['bad-stdin', { stdin: 7 }],
@@ -127,6 +130,14 @@ try {
         'headers/answer.h': 'inline int answer(){return 42;}'
       }, sources: ['src/main.cpp'] });
       assert.ok(nested.ok, JSON.stringify(nested)); report.lifecycle.push({ check: 'nested-headers', ok: true });
+
+      const isolatedIncludes = await send({ ...job('isolated-includes'), isolatedIncludes: true,
+        files: { 'src/application.cpp': '#include <iostream>\n#include "include/math.hpp"\nint main(){std::cout<<value();}',
+          'include/math.hpp': '#include "config.hpp"\ninline int value(){return VALUE;}',
+          'include/config.hpp': '#define VALUE 5' }, sources: ['src/application.cpp'] });
+      assert.ok(isolatedIncludes.ok, JSON.stringify(isolatedIncludes));
+      assert.equal(isolatedIncludes.result.stdout, '5');
+      report.lifecycle.push({ check: 'isolated-project-includes', ok: true });
 
       const written = await send(job('write-leak', '#include <fstream>\nint main(){std::ofstream f("leaked.h"); f<<"#define LEAK 1";}'));
       assert.ok(written.ok);

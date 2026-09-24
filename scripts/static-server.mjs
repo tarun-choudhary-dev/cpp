@@ -10,7 +10,7 @@ export async function serve({ isolated = false } = {}) {
       if (req.method !== 'GET') { res.writeHead(405).end(); return; }
       const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
       const file = path.resolve(root, '.' + name);
-      if (!file.startsWith(root + path.sep) || !['poc', 'worker', 'node_modules'].some(p => file.startsWith(path.join(root, p) + path.sep))) {
+      if (!file.startsWith(root + path.sep) || !['poc', 'src', 'worker', 'node_modules'].some(p => file.startsWith(path.join(root, p) + path.sep))) {
         res.writeHead(403).end(); return;
       }
       const body = await readFile(file);

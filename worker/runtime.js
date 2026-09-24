@@ -88,22 +88,28 @@ class CompilerWorkerRuntime {
       return this.command(api, stage, module, ...args);
     };
     // API/MemFS/App state is owned only by this job and becomes collectible on return.
-    const directories = new Set();
+    // Project include/ is aliased away from the sysroot include/ directory.
+    const physical = name => job.isolatedIncludes && name.startsWith('include/') ? `.cpp-project/${name}` : name;
+    const directories = new Set(job.isolatedIncludes ? ['.cpp-project'] : []);
     for (const name of Object.keys(job.files)) {
-      const parts = name.split('/');
+      const parts = physical(name).split('/');
       for (let i = 1; i < parts.length; i++) directories.add(parts.slice(0, i).join('/'));
     }
     for (const directory of [...directories].sort((a, b) => a.split('/').length - b.split('/').length)) api.memfs.addDirectory(directory);
     api.memfs.addDirectory('.cpp-worker');
-    for (const [name, text] of Object.entries(job.files)) api.memfs.addFile(name, new TextEncoder().encode(text));
+    for (const [name, text] of Object.entries(job.files)) api.memfs.addFile(physical(name), new TextEncoder().encode(text));
     const steps = [];
     let artifact = null;
     const finish = () => {
       const last = steps.at(-1);
+      const diagnostics = steps.filter(s => s.stage !== 'execute')
+        .flatMap(s => WorkerProtocol.diagnostics(s.stage, s.stderr))
+        .map(d => ({ ...d, file: job.isolatedIncludes && d.file?.startsWith('.cpp-project/include/')
+          ? d.file.slice('.cpp-project/'.length) : d.file }));
       return {
         status: last.trap ? 'trap' : last.exitCode !== 0 ? (last.stage === 'execute' ? 'nonzero-exit' : `${last.stage}-error`) : 'success',
         stage: last.stage, exitCode: last.exitCode, stdout: last.stdout, stderr: last.stderr,
-        trap: last.trap, steps, diagnostics: steps.filter(s => s.stage !== 'execute').flatMap(s => WorkerProtocol.diagnostics(s.stage, s.stderr)),
+        trap: last.trap, steps, diagnostics,
         artifact, durationMs: performance.now() - start
       };
     };
@@ -111,7 +117,7 @@ class CompilerWorkerRuntime {
     for (let i = 0; i < job.sources.length; i++) {
       const step = await run('compile', this.assets.get('clang'), 'clang', '-cc1', '-emit-obj',
         ...api.clangCommonArgs.filter(a => a !== '-fcolor-diagnostics'), `-std=${job.standard}`, ...job.compilerFlags,
-        '-O0', '-I.', '-o', objects[i], '-x', 'c++', job.sources[i]);
+        '-O0', ...(job.isolatedIncludes ? ['-I.cpp-project'] : []), '-I.', '-o', objects[i], '-x', 'c++', physical(job.sources[i]));
       steps.push(step);
       if (step.exitCode !== 0) return finish();
     }
