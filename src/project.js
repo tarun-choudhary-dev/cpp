@@ -1,4 +1,5 @@
 import { CompilerError } from './compiler-error.js';
+import { normalizeCompilerOptions } from './compiler-options.js';
 import { normalizeProjectPath, VirtualFileSystem } from './virtual-fs.js';
 
 const sourceExtension = /\.(?:cpp|cc|cxx|C)$/;
@@ -11,6 +12,7 @@ export class ProjectSnapshot {
   #stdin;
   #sources;
   #isolatedIncludes;
+  #options;
 
   constructor(project) {
     if (!project || typeof project !== 'object' || Array.isArray(project)) invalid('Project must be an object.');
@@ -30,6 +32,10 @@ export class ProjectSnapshot {
       ...paths.filter(path => path !== this.#entry && sourceExtension.test(path))
     ]);
     this.#isolatedIncludes = paths.some(path => path.startsWith('include/'));
+    let options;
+    try { options = Object.hasOwn(project, 'options') ? project.options : undefined; }
+    catch { throw new CompilerError('INVALID_OPTIONS', 'Could not read project options.'); }
+    this.#options = options === undefined ? null : normalizeCompilerOptions(options);
   }
 
   get filesystem() { return this.#filesystem; }
@@ -40,7 +46,8 @@ export class ProjectSnapshot {
   toWorkerInput() {
     return {
       files: this.#filesystem.toWorkerFiles(), sources: [...this.#sources], stdin: this.#stdin,
-      ...(this.#isolatedIncludes ? { isolatedIncludes: true } : {})
+      ...(this.#isolatedIncludes ? { isolatedIncludes: true } : {}),
+      ...(this.#options ? { options: { ...this.#options, warnings: { ...this.#options.warnings } } } : {})
     };
   }
 }

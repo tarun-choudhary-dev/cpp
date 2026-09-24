@@ -104,8 +104,12 @@ class CompilerWorkerRuntime {
       const last = steps.at(-1);
       const diagnostics = steps.filter(s => s.stage !== 'execute')
         .flatMap(s => WorkerProtocol.diagnostics(s.stage, s.stderr))
-        .map(d => ({ ...d, file: job.isolatedIncludes && d.file?.startsWith('.cpp-project/include/')
-          ? d.file.slice('.cpp-project/'.length) : d.file }));
+        .map(d => {
+          const logical = d.file?.startsWith('.cpp-project/include/')
+            ? d.file.slice('.cpp-project/'.length) : null;
+          return { ...d, file: job.isolatedIncludes && logical && Object.hasOwn(job.files, logical)
+            ? logical : d.file };
+        });
       return {
         status: last.trap ? 'trap' : last.exitCode !== 0 ? (last.stage === 'execute' ? 'nonzero-exit' : `${last.stage}-error`) : 'success',
         stage: last.stage, exitCode: last.exitCode, stdout: last.stdout, stderr: last.stderr,
@@ -114,10 +118,16 @@ class CompilerWorkerRuntime {
       };
     };
     const objects = job.sources.map((_, i) => `.cpp-worker/${i}.o`);
+    const compilerOptions = job.options ? [
+      `-std=${job.options.standard}`,
+      ...(job.options.warnings.all ? ['-Wall'] : []),
+      ...(job.options.warnings.extra ? ['-Wextra'] : []),
+      `-${job.options.optimization}`
+    ] : [`-std=${job.standard}`, ...job.compilerFlags, '-O0'];
     for (let i = 0; i < job.sources.length; i++) {
       const step = await run('compile', this.assets.get('clang'), 'clang', '-cc1', '-emit-obj',
-        ...api.clangCommonArgs.filter(a => a !== '-fcolor-diagnostics'), `-std=${job.standard}`, ...job.compilerFlags,
-        '-O0', ...(job.isolatedIncludes ? ['-I.cpp-project'] : []), '-I.', '-o', objects[i], '-x', 'c++', physical(job.sources[i]));
+        ...api.clangCommonArgs.filter(a => a !== '-fcolor-diagnostics'), ...compilerOptions,
+        ...(job.isolatedIncludes ? ['-I.cpp-project'] : []), '-I.', '-o', objects[i], '-x', 'c++', physical(job.sources[i]));
       steps.push(step);
       if (step.exitCode !== 0) return finish();
     }

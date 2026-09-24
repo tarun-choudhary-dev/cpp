@@ -9,6 +9,7 @@
     "test:api": "node scripts/api-test.mjs",
     "test:project": "node scripts/project-test.mjs",
     "test:compile-run": "node scripts/compile-run-test.mjs",
+    "test:diagnostics-options": "node scripts/diagnostics-options-test.mjs",
     "check:privacy": "node scripts/check-privacy.mjs"
   },
   "devDependencies": {

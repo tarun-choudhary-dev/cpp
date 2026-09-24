@@ -4,7 +4,29 @@ const WorkerProtocol = (() => {
     constructor(code, message) { super(message); this.code = code; }
   }
   const invalid = message => { throw new RequestError('INVALID_REQUEST', message); };
+  const invalidOptions = message => { throw new RequestError('INVALID_OPTIONS', message); };
   const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  const plainRecord = value => record(value) &&
+    (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
+  function options(input) {
+    if (!plainRecord(input)) invalidOptions('Project options must be a plain object.');
+    for (const key of Reflect.ownKeys(input)) {
+      if (!['standard', 'optimization', 'warnings'].includes(key)) invalidOptions(`Unknown compiler option: ${String(key)}`);
+    }
+    const standard = Object.hasOwn(input, 'standard') ? input.standard : 'c++17';
+    const optimization = Object.hasOwn(input, 'optimization') ? input.optimization : 'O0';
+    if (!['c++11', 'c++14', 'c++17'].includes(standard)) invalidOptions('Unsupported C++ standard.');
+    if (!['O0', 'O1', 'O2'].includes(optimization)) invalidOptions('Unsupported optimization level.');
+    const warnings = Object.hasOwn(input, 'warnings') ? input.warnings : {};
+    if (!plainRecord(warnings)) invalidOptions('Warnings must be a plain object.');
+    for (const key of Reflect.ownKeys(warnings)) {
+      if (!['all', 'extra'].includes(key)) invalidOptions(`Unknown warning option: ${String(key)}`);
+    }
+    const all = Object.hasOwn(warnings, 'all') ? warnings.all : false;
+    const extra = Object.hasOwn(warnings, 'extra') ? warnings.extra : false;
+    if (typeof all !== 'boolean' || typeof extra !== 'boolean') invalidOptions('Warning options must be booleans.');
+    return { standard, optimization, warnings: { all, extra } };
+  }
   function envelope(data) {
     if (!record(data)) invalid('Request must be an object.');
     if (typeof data.id !== 'string' || !data.id || data.id.length > 128) invalid('id must be a nonempty string of at most 128 characters.');
@@ -44,14 +66,18 @@ const WorkerProtocol = (() => {
     if (typeof stdin !== 'string') invalid('stdin must be a preloaded string.');
     const compilerFlags = data.compilerFlags ?? [];
     if (!Array.isArray(compilerFlags) || compilerFlags.some(f => !['-fcxx-exceptions', '-fexceptions'].includes(f))) invalid('Only the Phase 1 exception probe flags are accepted as compilerFlags.');
-    return { files: data.files, sources: data.sources, standard, stdin, compilerFlags, isolatedIncludes };
+    if (data.options !== undefined && (data.standard !== undefined || data.compilerFlags !== undefined)) {
+      invalidOptions('Structured options cannot be combined with legacy Worker compiler settings.');
+    }
+    return { files: data.files, sources: data.sources, standard, stdin, compilerFlags, isolatedIncludes,
+      options: data.options === undefined ? null : options(data.options) };
   }
   function diagnostics(stage, stderr) {
     const found = [];
     for (const raw of stderr.split('\n')) {
-      const location = raw.match(/^(.+?):(\d+):(\d+): (fatal error|error|warning|note): (.*)$/);
+      const location = raw.match(/^(.+?):(\d+)(?::(\d+))?: (fatal error|error|warning|note): (.*)$/);
       const general = raw.match(/^(?:(.*?): )?(fatal error|error|warning|note): (.*)$/);
-      if (location) found.push({ stage, severity: location[4], file: location[1], line: Number(location[2]), column: Number(location[3]), message: location[5], raw });
+      if (location) found.push({ stage, severity: location[4], file: location[1], line: Number(location[2]), column: location[3] === undefined ? null : Number(location[3]), message: location[5], raw });
       else if (general) found.push({ stage, severity: general[2], file: null, line: null, column: null, message: general[3], raw });
     }
     return found; // Full multiline text is always retained separately in steps[].stderr.
