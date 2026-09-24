@@ -8,6 +8,7 @@
     "test:worker": "node scripts/worker-test.mjs",
     "test:api": "node scripts/api-test.mjs",
     "test:project": "node scripts/project-test.mjs",
+    "test:compile-run": "node scripts/compile-run-test.mjs",
     "check:privacy": "node scripts/check-privacy.mjs"
   },
   "devDependencies": {

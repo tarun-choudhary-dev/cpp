@@ -4,7 +4,7 @@ Real C++ compilation and execution have been verified in browser Web Workers wit
 
 The [pinned asset manifest](research/assets.json) records the toolchain inputs and hashes. The full research report and raw browser results are local-only files.
 
-Phase 2 added a reusable **Worker runtime** around the unchanged Phase 1 toolchain. Phase 3 added the public [CppCompiler](src/index.js) JavaScript API over that Worker. Phase 4 formalized its internal project and in-memory file model. It has no editor, UI, framework components or backend. `poc/blank.html` remains an empty automation fixture. Detailed API and architecture notes are local-only under `docs/`.
+Phase 2 added a reusable **Worker runtime** around the unchanged Phase 1 toolchain. Phase 3 added the public [CppCompiler](src/index.js) JavaScript API over that Worker. Phase 4 formalized its internal project and in-memory file model. Phase 5 verified and documented the compile/run contract. It has no editor, UI, framework components or backend. `poc/blank.html` remains an empty automation fixture. Detailed API and architecture notes are local-only under `docs/`.
 
 ```js
 import { CppCompiler } from './src/index.js';
@@ -19,7 +19,7 @@ console.log(result.status, result.stdout, result.exitCode);
 await compiler.dispose();
 ```
 
-`compile(project)` builds without execution; `run(project)` builds and executes. A project supplies text `files`, an existing `entry` path and optional `stdin`. Paths are relative to an in-memory virtual project root, use `/`, and never access the user's actual filesystem. Harmless `.` segments normalize; traversal, absolute/drive paths, backslashes and duplicate normalized paths reject. The entry compiles first, then other `.cpp`, `.cc`, `.cxx` and `.C` files in canonical path order. Headers, including nested `include/` headers, stay available for Clang includes. Both methods return structured statuses, diagnostics, per-stage output and an owned Wasm artifact when linking succeeds. API/Worker failures reject with an error `code`. `cancel()` and `reset()` replace the Worker and reload assets; `dispose()` permanently releases it.
+`compile(project)` builds without executing user code; `run(project)` builds again and executes. A project supplies text `files`, an existing `entry` path and optional preloaded `stdin`. Paths are relative to an in-memory virtual project root, use `/`, and never access the user's actual filesystem. Harmless `.` segments normalize; traversal, absolute/drive paths, backslashes and duplicate normalized paths reject. The entry compiles first, then other `.cpp`, `.cc`, `.cxx` and `.C` files in canonical path order. Headers, including nested `include/` headers, stay available for Clang includes. Both methods resolve with structured statuses (`success`, `compile-error`, `link-error`, `nonzero-exit`, `trap`), diagnostics, per-stage output and a caller-owned `Uint8Array` Wasm artifact when linking succeeds. Syntax/link failures and nonzero exits are results; API/Worker failures reject with an error `code`. `cancel()` and `reset()` replace the Worker and reload assets; `dispose()` permanently releases it. Previously returned artifacts remain valid after these lifecycle changes. The legacy stdin path does not round-trip all Unicode text, and there is no interactive input or runtime output quota.
 
 ## Reproduce
 
@@ -33,6 +33,7 @@ npm test
 npm run test:worker
 npm run test:api
 npm run test:project
+npm run test:compile-run
 ```
 
 Setup downloads packages, browser binaries and approximately 60.4 MB of compiler assets. `npm run assets` verifies each upstream file against a pinned SHA-256 and retains license files. Subsequent runs reuse verified local assets. Large downloaded assets are excluded from Git.
@@ -46,6 +47,8 @@ It writes `evidence/chromium.json` and `evidence/firefox.json`: exact commands, 
 `npm run test:api` checks the public API's lifecycle, validation, results, hard cancellation, reset, disposal and Worker failure handling in Chromium and Firefox. It writes local-only `evidence/phase3-chromium.json` and `evidence/phase3-firefox.json`.
 
 `npm run test:project` checks canonical paths, duplicate detection, ordering, detached snapshots and real multi-file/header compilation in Chromium and Firefox. Browser jobs run with networking disabled after initialization. Results are local-only under `evidence/phase4-*.json`.
+
+`npm run test:compile-run` checks the Phase 5 compile/run contract, streams, input, exit codes, failures, repeatability, artifact ownership and lifecycle in Chromium and Firefox. Initialized jobs run offline. Results, including a wider-Unicode stdin observation, stay local under `evidence/phase5-*.json`.
 
 To limit the test to one installed browser in PowerShell:
 
@@ -68,7 +71,7 @@ Review `git status --short --untracked-files=all` and `git diff --cached` before
 - `poc/worker.js`, `poc/cases.mjs`: private experiment and C++ fixtures.
 - `worker/compiler-worker.js`, `worker/runtime.js`, `worker/protocol.js`: dedicated runtime, toolchain adapter, input validation and diagnostics.
 - `src/index.js`, `src/project.js`, `src/virtual-fs.js`, `src/worker-client.js`: public API, internal project/VFS model and private Worker transport.
-- `docs/`: local-only Phase 2–4 architecture, protocol, API, project and lifecycle notes.
+- `docs/`: local-only Phase 2–5 architecture, protocol, API, project, compile/run and lifecycle notes.
 - `scripts/`: asset verification, static test transport and browser automation.
 - `research/`: local-only comparison plus shareable asset URLs/hashes and upstream observations.
 - `evidence/`: local-only measured results, including the unavailable WebKit environment.
